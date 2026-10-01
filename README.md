@@ -37,6 +37,53 @@ cmake --install Builds/Release
 
 You may need a sudo. Like the build, this will use the `CMAKE_INSTALL_PREFIX` for the shared location
 
+## Orange Pi 5 / DietPi (VST3 only)
+
+From a Git checkout on the Orange Pi 5 running 64-bit DietPi, run:
+
+```bash
+bash scripts/build_orangepi5.sh
+```
+
+The script installs build dependencies using apt (as root or through sudo), downloads
+the pinned recursive submodules, and builds only the VST3. It requires GCC/G++ 12 or
+newer and CMake 3.22 or newer; older DietPi installations may need a newer toolchain
+or OS release. It uses `-O3 -DNDEBUG -mcpu=cortex-a76.cortex-a55`, without fast-math
+or LTO, and defaults to two parallel jobs for an 8 GB board, including JUCE helper
+compilation. Lower this with `--jobs 1` if memory is tight.
+
+The script can be invoked from any directory. Use `--build-dir PATH` to choose a
+different output directory (relative to your current directory), `--skip-deps` to
+skip apt after dependencies are installed, and `--help` for usage. For example:
+
+```bash
+bash scripts/build_orangepi5.sh --skip-deps --jobs 2
+```
+
+Rerunning uses the existing build incrementally. The default bundle is
+`build/orangepi5-release/OB-Xf_artefacts/Release/VST3/OB-Xf.vst3`.
+The script leaves plugin and factory asset installation to you. To install for your
+user, run these commands from the repository root as the user who runs the plugin host
+(adjust the bundle path if you used `--build-dir`):
+
+```bash
+mkdir -p "$HOME/.vst3" "${XDG_DATA_HOME:-$HOME/.local/share}/Surge Synth Team/OB-Xf"
+cp -a build/orangepi5-release/OB-Xf_artefacts/Release/VST3/OB-Xf.vst3 "$HOME/.vst3/"
+cp -a "assets/installer/Surge Synth Team/OB-Xf/." "${XDG_DATA_HOME:-$HOME/.local/share}/Surge Synth Team/OB-Xf/"
+```
+
+Copy the whole `.vst3` bundle. Use an ARM64 Linux VST3 host and rescan its plugins.
+On the board, check the binary and runtime dependencies with:
+
+```bash
+file build/orangepi5-release/OB-Xf_artefacts/Release/VST3/OB-Xf.vst3/Contents/aarch64-linux/OB-Xf.so
+ldd build/orangepi5-release/OB-Xf_artefacts/Release/VST3/OB-Xf.vst3/Contents/aarch64-linux/OB-Xf.so
+```
+
+Confirm the binary is AArch64, no dependencies are missing, and the host can open
+the editor, load factory patches, and play notes through MIDI. Building can run
+over SSH without a desktop; displaying the plugin editor requires a graphical session.
+
 ## iPad / iOS target (work in progress)
 
 iOS support is being added incrementally. The initial CMake wiring enables iOS-safe formats (`AUv3`, `Standalone`) and disables desktop-only packaging steps.
